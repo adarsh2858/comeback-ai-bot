@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/krognol/go-wolfram"
 	"github.com/shomali11/slacker"
 	"github.com/tidwall/gjson"
 	witai "github.com/wit-ai/wit-go/v2"
@@ -27,11 +28,10 @@ func main() {
 	if err != nil {
 		fmt.Errorf(err.Error())
 	}
-	fmt.Println("Hello world")
 
 	bot := slacker.NewClient(os.Getenv("SLACK_BOT_TOKEN"), os.Getenv("SLACK_APP_TOKEN"))
 	witClient := witai.NewClient(os.Getenv("WIT_AI_TOKEN"))
-	// wolframClient, _ := wit.NewClient(os.Getenv("WOLFRAM_APP_TOKEN"))
+	wolframClient := &wolfram.Client{AppID: os.Getenv("WOLFRAM_APP_ID")}
 
 	// go printCommandEvents(bot.CommandEvents())
 
@@ -50,6 +50,7 @@ func main() {
 				return
 			}
 
+			// convert response to understandable json format to fetch required value for processing
 			data, err := json.Marshal(res)
 			if err != nil {
 				fmt.Println(err.Error())
@@ -57,12 +58,18 @@ func main() {
 			}
 			rough := string(data[:])
 
-			// use gjson to deconstruct the response (gjson.ResponseToUnderstandableJson(res, "$wolframquery.wolframquery").0.value) which is  very nested json
+			// use gjson to deconstruct the response (gjson.ResponseToUnderstandableJson(res, "$wolframquer...") which is very nested json
 			val := gjson.Get(rough, "entities.wit$wolfram_search_query:wolfram_search_query.0.value")
-			fmt.Println(val)
+			stringVal := val.String()
 
 			// call wolfram with the query result decoded from the wit response
-			response.Reply("Hello world", slacker.WithThreadReply(true))
+			receivedAnswer := "NA"
+			receivedAnswer, err = wolframClient.GetSpokentAnswerQuery(stringVal, wolfram.Metric, 1000)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			response.Reply(receivedAnswer, slacker.WithThreadReply(true))
 		},
 	})
 
