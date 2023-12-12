@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/krognol/go-wolfram"
 	"github.com/shomali11/slacker"
+	"github.com/slack-go/slack"
 	"github.com/tidwall/gjson"
 	witai "github.com/wit-ai/wit-go/v2"
 )
@@ -77,4 +78,22 @@ func main() {
 	defer cancel()
 
 	log.Fatal(bot.Listen(ctx))
+
+	// File upload via go server to slack channel
+	fileBot := slack.New(os.Getenv("SLACK_BOT_TOKEN"))
+	channelArr := []string{os.Getenv("CHANNEL_ID")}
+	files := []string{"sample.csv"}
+
+	for i := range files {
+		params := slack.FileUploadParameters{
+			Channels: channelArr,
+			File:     files[i],
+		}
+
+		file, err := fileBot.UploadFile(params)
+		if err != nil {
+			log.Print(err.Error())
+		}
+		log.Printf("URL: %v; Name: %v", file.URLPrivate, file.Name)
+	}
 }
