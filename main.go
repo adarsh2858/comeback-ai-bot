@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 	"github.com/krognol/go-wolfram"
@@ -74,13 +75,29 @@ func main() {
 		},
 	})
 
+	bot.Command("my yob is <year>", &slacker.CommandDefinition{
+		Description: "age calculator",
+		Examples:    []string{"my yob is 2002", "my yob is 1967"},
+		Handler: func(ctx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			param := request.Param("year")
+			var yob int
+			if yob, err = strconv.Atoi(param); err != nil {
+				log.Print(err.Error())
+			}
+
+			age := 2023 - yob
+			r := fmt.Sprintf("your age is %v", age)
+			response.Reply(r)
+		},
+	})
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	log.Fatal(bot.Listen(ctx))
 
 	// File upload via go server to slack channel
-	fileBot := slack.New(os.Getenv("SLACK_BOT_TOKEN"))
+	fileBot := slack.New(os.Getenv("SLACK_FILE_BOT_TOKEN"))
 	channelArr := []string{os.Getenv("CHANNEL_ID")}
 	files := []string{"sample.csv"}
 
